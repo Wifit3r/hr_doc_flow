@@ -53,3 +53,8 @@ class MockDataManager:
     ) -> str:
         """Returns a fake folder path string (no actual FS operations)."""
         return f"mock_orders/{year}/{month:02d}/{employee_id}"
+
+    def create_employee(self, employee: Employee) -> Employee:
+        """Mock: assigns a fake folder_id and returns the employee unchanged."""
+        from dataclasses import replace
+        return replace(employee, folder_id=f"mock_folder_{employee.employee_id}")

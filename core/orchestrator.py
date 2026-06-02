@@ -5,8 +5,9 @@ of Andrii's and Misha's implementations.
 """
 
 import logging
+from dataclasses import dataclass
 from datetime import date
-from typing import Protocol, runtime_checkable
+from typing import Optional, Protocol, runtime_checkable
 
 from models import Employee, OrderType
 
@@ -31,6 +32,14 @@ class DataManagerProtocol(Protocol):
         """
         ...
 
+    def create_employee(self, employee: Employee) -> Employee:
+        """
+        Persist a new employee record (Drive folder + profile.json).
+
+        Returns the saved Employee, potentially with an assigned folder_id.
+        """
+        ...
+
 
 @runtime_checkable
 class ApiClientProtocol(Protocol):
@@ -49,6 +58,21 @@ class ApiClientProtocol(Protocol):
         Returns the URL or ID of the newly created document.
         """
         ...
+
+
+# ─── Result type for bulk operations ─────────────────────────────────────────
+
+@dataclass
+class BulkResult:
+    """Outcome for one employee in a bulk order generation run."""
+
+    employee: Employee
+    doc_url: Optional[str]
+    error: Optional[Exception]
+
+    @property
+    def ok(self) -> bool:
+        return self.error is None
 
 
 # ─── Orchestrator ─────────────────────────────────────────────────────────────
@@ -131,3 +155,37 @@ class Orchestrator:
             f"Document saved → [bold]{folder_path}[/bold]"
         )
         return doc_url
+
+    def generate_orders_bulk(
+        self, employees: list[Employee], order_type: OrderType
+    ) -> list[BulkResult]:
+        """
+        Generate the same order type for a list of employees.
+
+        Never raises — each failure is captured in BulkResult.error so the
+        caller can display per-employee success/failure without crashing.
+        """
+        self._log.info(
+            f"Bulk [bold]{order_type.label()}[/bold] "
+            f"for [bold]{len(employees)}[/bold] employee(s)…"
+        )
+        results: list[BulkResult] = []
+        for emp in employees:
+            try:
+                url = self.generate_order(emp, order_type)
+                results.append(BulkResult(employee=emp, doc_url=url, error=None))
+            except Exception as exc:
+                self._log.warning(
+                    f"Failed for [italic]{emp.short_name}[/italic]: {exc}"
+                )
+                results.append(BulkResult(employee=emp, doc_url=None, error=exc))
+        return results
+
+    def create_employee(self, employee: Employee) -> Employee:
+        """Persist a new employee via data manager and return the saved record."""
+        self._log.info(f"Creating employee [italic]{employee.short_name}[/italic]…")
+        saved = self._data.create_employee(employee)
+        self._log.info(
+            f"Employee [bold]{saved.employee_id}[/bold] created."
+        )
+        return saved
