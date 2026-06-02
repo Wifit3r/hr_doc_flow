@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+   
+# Google API Secrets (КРИТИЧНО)
+credentials.json
+token.json
+   
+# Local Data Folders
+Employees/
+Orders/
+   
+# Logs
+*.log
