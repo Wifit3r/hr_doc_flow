@@ -9,6 +9,7 @@ env/
 # Google API Secrets (КРИТИЧНО)
 credentials.json
 token.json
+token.pickle
    
 # Local Data Folders
 Employees/
